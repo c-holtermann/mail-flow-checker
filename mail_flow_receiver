@@ -274,7 +274,7 @@ if num_messages > 0:
 
         # Message systems may manipulate subject, so the subject string check is not as strict
         # as one might expect:
-        if msg_from == mail_from_addr and msg_subj in mail_lookfor_subject:
+        if msg_from == mail_from_addr and mail_lookfor_subject in msg_subj:
             # Now, I'm sure that the message is for me, so delete it, and update DB
             imap_con.store(msgnum, '+FLAGS', r'\Deleted')
             sql = """
