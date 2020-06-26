@@ -147,6 +147,7 @@ try:
     mail_imap_user=              config.get('mail','imap_user')
     mail_imap_password=          config.get('mail','imap_password')
     mail_imap_use_ssl=           config.get('mail','imap_use_ssl')
+    mail_imap_max_delta_hours=   config.getint('mail','imap_max_delta_hours')
     db_name =                    config.get('db','name')
     db_schema =                  config.get('db','schema')
     db_message_table =           config.get('db','message_table')
@@ -224,7 +225,10 @@ db_conn.commit()
 
 num_received = 0
 if num_messages > 0:
-    msgnums = imap_con.search(None, 'ALL')[1][0].split(' ')
+    today = datetime.date.today()
+    date_threshold = today - datetime.timedelta(hours=mail_imap_max_delta_hours)
+    cond = '(SINCE "%s")' % date_threshold.strftime("%d-%b-%Y")
+    msgnums = imap_con.search(None, cond)[1][0].split(' ')
 
     for msgnum in msgnums:
         debug("msgnum: %s" % msgnum)
