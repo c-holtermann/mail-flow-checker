@@ -22,7 +22,7 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 #THE SOFTWARE.
 
-import psycopg2
+import pyodbc
 from imaplib import *
 import email.Utils
 import datetime
@@ -151,15 +151,16 @@ try:
     db_schema =                  config.get('db','schema')
     db_message_table =           config.get('db','message_table')
     db_receive_execution_table = config.get('db','receive_execution_table')
+    db_connection_string =       config.get('db','connection_string')
 except Exception, e:
     err("Configuration error: %s" % e)
 
 # --------------- Prepare DB ---------------
 try:
     os.environ['PGCONNECT_TIMEOUT'] = str(connect_timeout)
-    db_conn = psycopg2.connect("dbname='%s'" % db_name);
+    db_conn = pyodbc.connect(db_connection_string);
     cursor = db_conn.cursor()
-except psycopg2.DatabaseError, e:
+except pyodbc.Error, e:
     # Lets not make DB connection errors generate cron error mails:
     log(
         "Could not connect to DB '%s', or could not open cursor, error message: '%s'" %
@@ -206,30 +207,18 @@ except Exception, e:
 # script is run).
 sql = """
     DELETE FROM %s.%s
-    WHERE       smtp_server=%%(mail_smtp_server)s
-      AND       to_addr=%%(mail_to_addr)s
-      AND       subj=%%(mail_lookfor_subject)s
-""" % (db_schema,db_receive_execution_table)
+    WHERE       smtp_server='%s'
+      AND       to_addr='%s'
+      AND       subj='%s'
+""" % (db_schema,db_receive_execution_table, mail_smtp_server, mail_to_addr, mail_lookfor_subject)
 debug("  sql: '%s'" % sql)
-cursor.execute(
-    sql,{
-        'mail_smtp_server':     mail_smtp_server,
-        'mail_to_addr':         mail_to_addr,
-        'mail_lookfor_subject': mail_lookfor_subject
-    }
-)
+cursor.execute(sql)
 sql = """
     INSERT INTO %s.%s (smtp_server,to_addr,subj)
-    VALUES      (%%(mail_smtp_server)s,%%(mail_to_addr)s,%%(mail_lookfor_subject)s)
-""" % (db_schema,db_receive_execution_table)
+    VALUES      ('%s','%s','%s')
+""" % (db_schema,db_receive_execution_table,mail_smtp_server,mail_to_addr,mail_lookfor_subject)
 debug("  sql: '%s'" % sql)
-cursor.execute(
-    sql,{
-        'mail_smtp_server':     mail_smtp_server,
-        'mail_to_addr':         mail_to_addr,
-        'mail_lookfor_subject': mail_lookfor_subject
-    }
-)
+cursor.execute(sql)
 db_conn.commit()
 
 
@@ -287,10 +276,10 @@ if num_messages > 0:
             sql = """
                 UPDATE %s.%s
                 SET    received=CURRENT_TIMESTAMP,
-                       first_received_header_ts=%%(first_received_header_ts)s
-                WHERE  msg_id=%%(msg_id)s""" % (db_schema,db_message_table)
+                       first_received_header_ts='%s'
+                WHERE  msg_id='%s'""" % (db_schema,db_message_table, first_received_header_ts, msg_id)
             debug("  sql: '%s'" % sql)
-            cursor.execute(sql,{'first_received_header_ts':first_received_header_ts, 'msg_id':msg_id})
+            cursor.execute(sql)
             debug("  executed with first_received_header_ts='%s' and msg_id='%s'" % (first_received_header_ts, msg_id))
             num_received += 1
         else:
