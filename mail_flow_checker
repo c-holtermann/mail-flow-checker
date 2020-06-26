@@ -28,8 +28,10 @@ try:
     import os
     import sys
     import getopt
+    import re
+    from datetime import timedelta
     from ConfigParser import SafeConfigParser
-    import psycopg2
+    import pyodbc
 
     # policy
     default_warning_minutes = 30
@@ -212,17 +214,18 @@ try:
         db_message_table           = config.get('db','message_table')
         db_check_view              = config.get('db','check_view')
         db_receive_execution_table = config.get('db','receive_execution_table')
+        db_connection_string       = config.get('db','connection_string')
 
     try:
         # prepare db
         os.environ['PGCONNECT_TIMEOUT'] = str(connect_timeout)
-        conn = psycopg2.connect("dbname='%s'" % db_name);
+        conn = pyodbc.connect(db_connection_string);
         cursor = conn.cursor()
 
         inject_sql_smtp_and_subj = ''
         if mail_smtp_server is not None:
-            inject_sql_smtp_and_subj = " AND smtp_server = '%s' AND subj = %%(subj)s " % \
-                (mail_smtp_server)
+            inject_sql_smtp_and_subj = " AND smtp_server = '%s' AND subj = '%s' " % \
+                (mail_smtp_server, subj)
 
         inject_sql_giveup = ''
         if giveup_minutes != 0:
@@ -270,10 +273,29 @@ try:
             db_schema,db_check_view,to_addr,inject_sql_smtp_and_subj,inject_sql_giveup,critical_minutes,
             db_schema,db_message_table,to_addr,inject_sql_smtp_and_subj
         )
-        cursor.execute(sql,{'subj':subj,'subj':subj,'subj':subj,'subj':subj})
+        cursor.execute(sql)
         msg_row = cursor.fetchone()
         if msg_row:
-            num_intransit,num_warn,num_crit,interval_since_last_send = msg_row
+            num_intransit,num_warn,num_crit,interval_since_last_send_str = msg_row
+            print(interval_since_last_send_str)
+
+            regex = re.compile(r'(?P<hours>\d+?):'
+                               r'(?P<minutes>\d+?):'
+                               r'(?P<seconds>\d+?).'
+                               r'(?P<microseconds>\d+?)')
+
+            def parse_time(time_str):
+                parts = regex.match(time_str)
+                if not parts:
+                    return
+                parts = parts.groupdict()
+                time_params = {}
+                for name, param in parts.items():
+                    if param:
+                        time_params[name] = int(param)
+                return timedelta(**time_params)
+
+            interval_since_last_send = parse_time(interval_since_last_send_str)
 
             interval_since_last_send_minutes = None
             if interval_since_last_send:
@@ -317,7 +339,7 @@ try:
                     inject_sql_smtp_and_subj,
                     inject_sql_giveup
                 )
-                cursor.execute(sql,{'subj':subj,'subj':subj})
+                cursor.execute(sql)
                 msg_id,sent = cursor.fetchone()
 
             # Let's determine the delay, as calculated by the receive-script (if the
@@ -342,12 +364,13 @@ try:
                 db_schema,db_message_table,to_addr,inject_sql_smtp_and_subj,
                 db_schema,db_receive_execution_table,to_addr,inject_sql_smtp_and_subj
             )
-            cursor.execute(sql,{'subj':subj,'subj':subj})
+            cursor.execute(sql)
             receive_row = cursor.fetchone()
             interval_since_last_receive_execution_minutes = None
             delay_seconds = None
             if receive_row:
-                delay,interval_since_last_receive_execution = receive_row
+                delay = parse_time(receive_row[0])
+                interval_since_last_receive_execution = parse_time(receive_row[1])
                 if delay:
                     delay_seconds = (
                         delay.days*(24*60*60) + 
