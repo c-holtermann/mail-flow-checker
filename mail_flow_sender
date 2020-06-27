@@ -126,6 +126,7 @@ defaults = {
     'schema': 'mail_flow',
     'sequence': 'messageid_sequence',
     'message_table': 'messages',
+    'smtp_port': '25'
 }
 
 config = SafeConfigParser(defaults)
@@ -135,6 +136,7 @@ try:
     mail_smtp_use_ssl =     config.get('mail','smtp_use_ssl')
     mail_smtp_username =    config.get('mail','smtp_username')
     mail_smtp_password =    config.get('mail','smtp_password')
+    mail_smtp_port =        config.get('mail','smtp_port')
     mail_from_addr =        config.get('mail','from_addr')
     mail_to_addr =          config.get('mail','to_addr')
     mail_subject =          config.get('mail','subject')
@@ -203,8 +205,8 @@ cursor.execute(sql)
 # --------------- Key step: Send mail, and log it to the database ---------------
 try:
     socket.setdefaulttimeout(connect_timeout)
-    smtp = smtplib.SMTP(mail_smtp_server)
-    if mail_smtp_use_ssl.lower()=='yes':
+    smtp = smtplib.SMTP(mail_smtp_server, mail_smtp_port)
+    if mail_smtp_use_ssl.lower() in ('yes', 'true', '1'):
         smtp.starttls()
     if mail_smtp_username or mail_smtp_password:
         smtp.login(mail_smtp_username,mail_smtp_password)
