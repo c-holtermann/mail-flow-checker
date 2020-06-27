@@ -277,7 +277,6 @@ try:
         msg_row = cursor.fetchone()
         if msg_row:
             num_intransit,num_warn,num_crit,interval_since_last_send_str = msg_row
-            print(interval_since_last_send_str)
 
             regex = re.compile(r'(?P<hours>\d+?):'
                                r'(?P<minutes>\d+?):'
