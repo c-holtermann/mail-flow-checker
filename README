@@ -1,2 +1,10 @@
 Scripts taken from http://troels.arvin.dk/code/nagios/mail_flow/
-modified by C. Holtermann
+modified by C. Holtermann to use ODBC database access
+
+Different databases:
+I've tested it with PostgreSQL which works as it did before. MariaDB works only from 10.3 because of SEQUENCE support. I didn't have the chance to test that yet. As far as I know there is no support for this in sqlite.
+
+dependencies:
+* ODBC
+* ODBC drivers: i.e. https://dev.mysql.com/downloads/connector/odbc/
+* ODBC python access: pyodbc
