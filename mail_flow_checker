@@ -346,7 +346,7 @@ try:
             sql = """
                 SELECT * FROM
                 (
-                    SELECT received - sent AS delay
+                    SELECT first_received_header_ts - sent AS delay
                     FROM %s.%s
                     WHERE first_received_header_ts IS NOT NULL
                       AND to_addr='%s'
