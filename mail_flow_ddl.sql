@@ -1,4 +1,4 @@
--- Mail Flow Checker version 2.3.
+-- Mail Flow Checker version 3.0.
 -- 
 -- Copyright (C) 2017 by National Board of eHealth, Denmark, and Troels Arvin.
 --
