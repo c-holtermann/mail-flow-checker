@@ -1,3 +1,5 @@
+nagios / icinga mail flow checker plugin
+
 Scripts taken from http://troels.arvin.dk/code/nagios/mail_flow/
 modified by C. Holtermann to use ODBC database access
 
