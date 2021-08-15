@@ -239,18 +239,14 @@ if db_days_retain is not None:
 
         sql = """
             DELETE FROM %s.%s
-            WHERE smtp_server=%%(mail_smtp_server)s
-              AND to_addr=%%(mail_to_addr)s
-              AND subj=%%(mail_subject)s
+            WHERE smtp_server=?
+              AND to_addr=?
+              AND subj=?
               AND sent + INTERVAL '%d day' < CURRENT_TIMESTAMP
         """ % (db_schema,db_message_table,db_days_retain)
 
         cursor.execute(
-            sql,{
-                'mail_smtp_server':mail_smtp_server,
-                'mail_to_addr':mail_to_addr,
-                'mail_subject':mail_subject
-            }
+            sql, mail_smtp_server, mail_to_addr, mail_subject
         )
         db_conn.commit()
 
